@@ -1,0 +1,9 @@
+[package]
+name = "ez_mailbox"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.29"
+volatile = { version = "0.6.1", features = ["derive"] }
+zerocopy = { version = "0.8.39", features = ["derive"] }
