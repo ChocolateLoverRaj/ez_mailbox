@@ -1,5 +1,8 @@
 #![no_std]
 
+pub mod interrupts;
+pub mod timer;
+
 use log::info;
 pub use volatile;
 use volatile::{
