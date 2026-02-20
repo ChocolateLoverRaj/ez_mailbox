@@ -35,13 +35,15 @@ pub struct TimerRef<'a>(pub VolatileRef<'a, Timer, ReadWrite>);
 
 impl TimerRef<'_> {
     pub fn clear_interrupt(&mut self, timer_number: u2) {
-        self.0
-            .as_mut_ptr()
-            .control_status()
-            .update(|mut control_status| {
-                control_status.set_m(timer_number.value() as usize, true);
-                control_status
-            });
+        self.0.as_mut_ptr().control_status().write(
+            ControlStatus::builder()
+                .with_m({
+                    let mut m = [false; _];
+                    m[timer_number.value() as usize] = true;
+                    m
+                })
+                .value,
+        );
     }
 
     pub fn counter(&self) -> u64 {
