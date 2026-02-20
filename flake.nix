@@ -25,9 +25,7 @@
           with pkgs;
           mkShell {
             buildInputs = [
-              (rust-bin.stable.latest.default.override {
-                extensions = [ "rust-src" ];
-              })
+              (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
             ];
           };
       }

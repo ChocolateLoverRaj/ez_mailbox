@@ -11,6 +11,8 @@ struct ControlStatus {
     m: [bool; 4],
 }
 
+/// From https://forums.raspberrypi.com/viewtopic.php?t=9882, it says that timers 2 and 4 are
+/// reserved for the GPU to use. We can use timers 1 and 3.
 #[repr(C)]
 #[derive(Debug, VolatileFieldAccess)]
 pub struct Timer {
