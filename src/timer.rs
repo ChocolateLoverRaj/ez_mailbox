@@ -1,11 +1,11 @@
 use arbitrary_int::u2;
 use bitbybit::bitfield;
 use volatile::{
-    VolatileFieldAccess, VolatileRef,
+    VolatileFieldAccess, VolatilePtr, VolatileRef,
     access::{ReadOnly, ReadWrite},
 };
 
-#[bitfield(u32, debug, forbit_overlaps)]
+#[bitfield(u32, debug, forbid_overlaps)]
 struct ControlStatus {
     #[bit(0, rw)]
     m: [bool; 4],
@@ -34,8 +34,13 @@ impl Timer {
 pub struct TimerRef<'a>(pub VolatileRef<'a, Timer, ReadWrite>);
 
 impl TimerRef<'_> {
-    pub fn clear_interrupt(&mut self, timer_number: u2) {
-        self.0.as_mut_ptr().control_status().write(
+    pub fn clear_interrupt(&self, timer_number: u2) {
+        let ptr = {
+            let ptr = self.0.as_ptr().control_status().as_raw_ptr();
+            // Safety, we are only writing a u32 which is atomic
+            unsafe { VolatilePtr::new(ptr) }
+        };
+        ptr.write(
             ControlStatus::builder()
                 .with_m({
                     let mut m = [false; _];
@@ -57,12 +62,18 @@ impl TimerRef<'_> {
         self.0.as_ptr().counter_low().read()
     }
 
-    pub fn write_compare_value(&mut self, timer_number: u2, compare_value: u32) {
-        self.0
-            .as_mut_ptr()
-            .compare()
-            .as_slice()
-            .index(timer_number.value() as usize)
-            .write(compare_value);
+    pub fn write_compare_value(&self, timer_number: u2, compare_value: u32) {
+        let ptr = {
+            let ptr = self
+                .0
+                .as_ptr()
+                .compare()
+                .as_slice()
+                .index(timer_number.value() as usize)
+                .as_raw_ptr();
+            // Safety: writing a u32 is atomic
+            unsafe { VolatilePtr::new(ptr) }
+        };
+        ptr.write(compare_value);
     }
 }

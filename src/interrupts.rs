@@ -1,6 +1,6 @@
 use arbitrary_int::u6;
 use volatile::{
-    VolatileFieldAccess, VolatileRef,
+    VolatileFieldAccess, VolatilePtr, VolatileRef,
     access::{ReadOnly, ReadWrite},
 };
 
@@ -38,31 +38,33 @@ impl Interrupts {
 pub struct InterruptsRef<'a>(pub VolatileRef<'a, Interrupts, ReadWrite>);
 
 impl InterruptsRef<'_> {
-    pub fn enable_irq(&mut self, irq_number: u6) {
+    pub fn enable_irq(&self, irq_number: u6) {
+        let ptr = {
+            let ptr = self.0.as_ptr().as_raw_ptr();
+            unsafe { VolatilePtr::new(ptr) }
+        };
         if irq_number.value() < 32 {
-            self.0.as_mut_ptr().enable_irqs_1().update(|mut n| {
-                n |= 1 << irq_number.value();
-                n
-            });
+            ptr.enable_irqs_1().write(1 << irq_number.value());
         } else {
-            self.0.as_mut_ptr().enable_irqs_2().update(|mut n| {
-                n |= 1 << (irq_number.value() - 32);
-                n
-            });
+            ptr.enable_irqs_2()
+                .write(1 << (irq_number - u6::new(32)).value());
         }
     }
 
-    pub fn disable_irq(&mut self, irq_number: u6) {
-        if irq_number < u6::new(32) {
-            self.0.as_mut_ptr().disable_irqs_1().update(|mut n| {
-                n |= 1 << irq_number.value();
-                n
-            });
+    pub fn disable_irq(&self, irq_number: u6) {
+        let ptr = {
+            let ptr = self.0.as_ptr().as_raw_ptr();
+            unsafe { VolatilePtr::new(ptr) }
+        };
+        if irq_number.value() < 32 {
+            ptr.disable_irqs_1().write(1 << irq_number.value());
         } else {
-            self.0.as_mut_ptr().disable_irqs_2().update(|mut n| {
-                n |= 1 << (irq_number - u6::new(32)).value();
-                n
-            });
+            ptr.disable_irqs_2()
+                .write(1 << (irq_number - u6::new(32)).value());
         }
+    }
+
+    pub fn pending_interrupts_irq_0_32(&self) -> u32 {
+        self.0.as_ptr().irq_1_pending().read()
     }
 }
